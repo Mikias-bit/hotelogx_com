@@ -403,6 +403,10 @@ def handle_user_message(phone: str, text: str) -> None:
 # -----------------------------------------------------------------------------
 # Routes
 # -----------------------------------------------------------------------------
+@app.get("/")
+def root() -> Any:
+    return jsonify({"message": "WhatsApp Mews DND Service is running", "health": "/health", "webhook": "/webhook"})
+
 @app.get("/health")
 def health() -> Any:
     return jsonify({"ok": True, "service": "whatsapp-mews-dnd-mvp"})
