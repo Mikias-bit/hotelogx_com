@@ -425,36 +425,37 @@ def health() -> Any:
     return jsonify({"ok": True, "service": "whatsapp-mews-dnd-mvp"})
 
 
-@app.get("/webhook")
-def verify_webhook() -> Any:
-    mode = request.args.get("hub.mode")
-    challenge = request.args.get("hub.challenge")
-    verify_token = request.args.get("hub.verify_token")
+@app.route("/webhook", methods=["GET", "POST"])
+def webhook() -> Any:
+    if request.method == "GET":
+        # Webhook verification
+        mode = request.args.get("hub.mode")
+        challenge = request.args.get("hub.challenge")
+        verify_token = request.args.get("hub.verify_token")
 
-    if mode == "subscribe" and verify_token == VERIFY_TOKEN:
-        return challenge, 200
-    return jsonify({"error": "verification_failed"}), 403
+        if mode == "subscribe" and verify_token == VERIFY_TOKEN:
+            return challenge, 200
+        return jsonify({"error": "verification_failed"}), 403
 
+    elif request.method == "POST":
+        # Webhook message handling
+        raw_body = request.get_data()
+        signature = request.headers.get("X-Hub-Signature-256")
 
-@app.post("/webhook")
-def receive_webhook() -> Any:
-    raw_body = request.get_data()
-    signature = request.headers.get("X-Hub-Signature-256")
+        if not verify_meta_signature(raw_body, signature):
+            return jsonify({"error": "invalid_signature"}), 403
 
-    if not verify_meta_signature(raw_body, signature):
-        return jsonify({"error": "invalid_signature"}), 403
+        payload = request.get_json(silent=True) or {}
+        incoming = parse_incoming_message(payload)
+        if not incoming:
+            return jsonify({"ok": True, "ignored": True})
 
-    payload = request.get_json(silent=True) or {}
-    incoming = parse_incoming_message(payload)
-    if not incoming:
-        return jsonify({"ok": True, "ignored": True})
-
-    try:
-        handle_user_message(incoming["phone"], incoming["text"])
-        return jsonify({"ok": True})
-    except Exception as exc:
-        app.logger.exception("Failed handling message")
-        return jsonify({"ok": False, "error": str(exc)}), 500
+        try:
+            handle_user_message(incoming["phone"], incoming["text"])
+            return jsonify({"ok": True})
+        except Exception as exc:
+            app.logger.exception("Failed handling message")
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
 
 @app.post("/debug/test-message")
