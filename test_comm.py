@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import requests
 from flask import Flask, jsonify, request
-rom dotenv import load_dotenv
+from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
