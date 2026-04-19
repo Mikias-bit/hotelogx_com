@@ -35,7 +35,7 @@ GUEST_DIRECTORY: Dict[str, Dict[str, str]] = {}
 # Format: phone -> {room_number, reservation_id, customer_id, service_order_id(optional)}
 GUEST_DIRECTORY.update(
     {
-        "31612345678": {
+        "+31684325333": {
             "room_number": "204",
             "reservation_id": "reservation-demo-204",
             "customer_id": "customer-demo-204",
