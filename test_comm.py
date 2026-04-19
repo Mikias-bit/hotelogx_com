@@ -6,8 +6,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import requests
-from flask import Flask, jsonify, request
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request
+
 load_dotenv()
 app = Flask(__name__)
 
@@ -15,7 +16,6 @@ app = Flask(__name__)
 # Configuration
 # -----------------------------------------------------------------------------
 VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "change-me")
-
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
 WHATSAPP_APP_SECRET = os.getenv("WHATSAPP_APP_SECRET", "")
@@ -154,12 +154,23 @@ mews = MewsClient(
 
 def verify_meta_signature(raw_body: bytes, signature_header: Optional[str]) -> bool:
     if not WHATSAPP_APP_SECRET:
+        app.logger.warning("WHATSAPP_APP_SECRET not set - accepting request for testing")
         return True  # MVP shortcut; set the secret in real deployments.
-    if not signature_header or not signature_header.startswith("sha256="):
+    if not signature_header:
+        app.logger.warning("Missing X-Hub-Signature-256 header")
         return False
+    if not signature_header.startswith("sha256="):
+        app.logger.warning(f"Invalid signature header format: {signature_header[:20]}...")
+        return False
+
     their_sig = signature_header.split("=", 1)[1]
     our_sig = hmac.new(WHATSAPP_APP_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(our_sig, their_sig)
+
+    if not hmac.compare_digest(our_sig, their_sig):
+        app.logger.warning(f"Signature mismatch. Expected: {our_sig[:10]}..., Got: {their_sig[:10]}...")
+        return False
+
+    return True
 
 
 def normalize_phone(wa_id: str) -> str:
@@ -408,9 +419,69 @@ def handle_user_message(phone: str, text: str) -> None:
 def root() -> Any:
     return jsonify({"message": "WhatsApp Mews DND Service is running", "health": "/health", "webhook": "/webhook"})
 
+
 @app.get("/health")
 def health() -> Any:
     return jsonify({"ok": True, "service": "whatsapp-mews-dnd-mvp"})
+
+
+@app.get("/webhook")
+def verify_webhook() -> Any:
+    mode = request.args.get("hub.mode")
+    challenge = request.args.get("hub.challenge")
+    verify_token = request.args.get("hub.verify_token")
+
+    if mode == "subscribe" and verify_token == VERIFY_TOKEN:
+        return challenge, 200
+    return jsonify({"error": "verification_failed"}), 403
+
+
+@app.post("/webhook")
+def receive_webhook() -> Any:
+    raw_body = request.get_data()
+    signature = request.headers.get("X-Hub-Signature-256")
+
+    if not verify_meta_signature(raw_body, signature):
+        return jsonify({"error": "invalid_signature"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    incoming = parse_incoming_message(payload)
+    if not incoming:
+        return jsonify({"ok": True, "ignored": True})
+
+    try:
+        handle_user_message(incoming["phone"], incoming["text"])
+        return jsonify({"ok": True})
+    except Exception as exc:
+        app.logger.exception("Failed handling message")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.post("/debug/test-message")
+def debug_test_message() -> Any:
+    payload = request.get_json(force=True)
+    phone = normalize_phone(payload["phone"])
+    text = payload["text"].strip().lower()
+    handle_user_message(phone, text)
+    return jsonify({"ok": True, "session": SESSION_STATE.get(phone)})
+
+
+@app.post("/admin/guest-directory")
+def admin_upsert_guest() -> Any:
+    payload = request.get_json(force=True)
+    phone = normalize_phone(payload["phone"])
+    GUEST_DIRECTORY[phone] = {
+        "room_number": payload["room_number"],
+        "reservation_id": payload.get("reservation_id", ""),
+        "customer_id": payload.get("customer_id", ""),
+        "service_order_id": payload.get("service_order_id", ""),
+    }
+    return jsonify({"ok": True, "guest": GUEST_DIRECTORY[phone]})
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8080")), debug=True)
+
 
 
 @app.get("/webhook")
