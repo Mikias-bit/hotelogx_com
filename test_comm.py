@@ -274,6 +274,14 @@ def send_whatsapp_buttons(to: str, body: str, buttons: list[dict[str, str]]) -> 
         },
     }
     response = requests.post(url, headers=headers, json=payload, timeout=30)
+    
+    # Log detailed error info if request fails
+    if response.status_code >= 400:
+        app.logger.error(f"WhatsApp API Error for {phone_e164}")
+        app.logger.error(f"Status: {response.status_code}")
+        app.logger.error(f"Response: {response.text}")
+        app.logger.error(f"Request payload: {json.dumps(payload, indent=2)}")
+    
     response.raise_for_status()
     return response.json()
 
