@@ -56,12 +56,22 @@ GUEST_DIRECTORY.update(
             "customer_id": "customer-demo-204",
             "service_order_id": "service-order-demo-204",
         },
-        "+31687031003": {
+        "31687031003": {
             "room_number": "604",
             "last_name": "Nathali",
-            "reservation_id": "reservation-demo-204",
-            "customer_id": "customer-demo-204",
-            "service_order_id": "service-order-demo-204",
+            "reservation_id": "reservation-demo-604",
+            "customer_id": "customer-demo-604",
+            "service_order_id": "service-order-demo-604",
+        }
+    }
+)
+
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+            "customer_id": "customer-demo-604",
+            "service_order_id": "service-order-demo-604",
         }
     }
 )
