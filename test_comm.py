@@ -32,11 +32,20 @@ GUEST_DIRECTORY: Dict[str, Dict[str, str]] = {}
 
 # Example seed data: map a WhatsApp number to a reservation/customer/room.
 # In production, fetch this from Mews using reservation/customer lookups.
-# Format: phone -> {room_number, reservation_id, customer_id, service_order_id(optional)}
+# Format: phone -> {room_number, last_name, reservation_id, customer_id, service_order_id(optional)}
 GUEST_DIRECTORY.update(
     {
         "31612345678": {
             "room_number": "204",
+            "last_name": "Smith",
+            "reservation_id": "reservation-demo-204",
+            "customer_id": "customer-demo-204",
+            "service_order_id": "service-order-demo-204",
+        }
+        {
+        "+31684325333": {
+            "room_number": "204",
+            "last_name": "Mikias",
             "reservation_id": "reservation-demo-204",
             "customer_id": "customer-demo-204",
             "service_order_id": "service-order-demo-204",
@@ -467,12 +476,31 @@ def debug_test_message() -> Any:
     return jsonify({"ok": True, "session": SESSION_STATE.get(phone)})
 
 
+@app.get("/debug/guests")
+def debug_guests() -> Any:
+    """Display all registered guests for testing purposes"""
+    guests_list = []
+    for phone, guest_info in GUEST_DIRECTORY.items():
+        guests_list.append({
+            "phone": phone,
+            "room_number": guest_info.get("room_number"),
+            "last_name": guest_info.get("last_name"),
+            "customer_id": guest_info.get("customer_id"),
+        })
+    return jsonify({
+        "ok": True,
+        "guests": guests_list,
+        "instruction": "Use the phone number to send messages. When asked for room number and last name, provide those values."
+    })
+
+
 @app.post("/admin/guest-directory")
 def admin_upsert_guest() -> Any:
     payload = request.get_json(force=True)
     phone = normalize_phone(payload["phone"])
     GUEST_DIRECTORY[phone] = {
         "room_number": payload["room_number"],
+        "last_name": payload.get("last_name", ""),
         "reservation_id": payload.get("reservation_id", ""),
         "customer_id": payload.get("customer_id", ""),
         "service_order_id": payload.get("service_order_id", ""),
