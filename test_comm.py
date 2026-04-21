@@ -220,6 +220,9 @@ def send_whatsapp_text(to: str, body: str) -> Dict[str, Any]:
         app.logger.warning("WhatsApp credentials missing. Pretending message was sent.")
         return {"mock": True, "to": to, "body": body}
 
+    # WhatsApp expects E.164 format: +[country code][number]
+    phone_e164 = f"+{to}" if not to.startswith("+") else to
+
     url = f"https://graph.facebook.com/v23.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -227,7 +230,7 @@ def send_whatsapp_text(to: str, body: str) -> Dict[str, Any]:
     }
     payload = {
         "messaging_product": "whatsapp",
-        "to": to,
+        "to": phone_e164,
         "type": "text",
         "text": {"body": body},
     }
@@ -241,6 +244,9 @@ def send_whatsapp_buttons(to: str, body: str, buttons: list[dict[str, str]]) -> 
         app.logger.warning("WhatsApp credentials missing. Pretending button message was sent.")
         return {"mock": True, "to": to, "body": body, "buttons": buttons}
 
+    # WhatsApp expects E.164 format: +[country code][number]
+    phone_e164 = f"+{to}" if not to.startswith("+") else to
+
     url = f"https://graph.facebook.com/v23.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -248,7 +254,7 @@ def send_whatsapp_buttons(to: str, body: str, buttons: list[dict[str, str]]) -> 
     }
     payload = {
         "messaging_product": "whatsapp",
-        "to": to,
+        "to": phone_e164,
         "type": "interactive",
         "interactive": {
             "type": "button",
