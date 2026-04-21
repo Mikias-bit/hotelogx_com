@@ -56,7 +56,7 @@ GUEST_DIRECTORY.update(
             "customer_id": "customer-demo-204",
             "service_order_id": "service-order-demo-204",
         },
-        "0687031003": {
+        "31687031003": {
             "room_number": "604",
             "last_name": "Nathali",
             "reservation_id": "reservation-demo-204",
