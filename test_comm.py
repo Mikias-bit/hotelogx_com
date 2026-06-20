@@ -2,6 +2,7 @@ import os
 import json
 import hmac
 import hashlib
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -9,8 +10,11 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request
 
+
 load_dotenv()
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+app.logger.setLevel(logging.INFO)
 
 # -----------------------------------------------------------------------------
 # Configuration
