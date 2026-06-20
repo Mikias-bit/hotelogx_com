@@ -474,8 +474,12 @@ def webhook() -> Any:
         challenge = request.args.get("hub.challenge") or request.args.get("hub_challenge")
         verify_token = request.args.get("hub.verify_token") or request.args.get("hub_verify_token")
 
-        expected_token = VERIFY_TOKEN
-        if mode == "subscribe" and verify_token == expected_token:
+        expected_token = VERIFY_TOKEN.strip() if VERIFY_TOKEN else ""
+        received_token = verify_token.strip() if verify_token else ""
+        
+        app.logger.info(f"Webhook verify: mode={mode}, received_token={received_token}, expected_token={expected_token}")
+        
+        if mode == "subscribe" and received_token == expected_token:
             return Response(challenge or "", status=200, mimetype="text/plain")
         return Response("Forbidden", status=403, mimetype="text/plain")
 
