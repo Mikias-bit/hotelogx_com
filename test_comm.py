@@ -234,8 +234,19 @@ def send_whatsapp_text(to: str, body: str) -> Dict[str, Any]:
         "type": "text",
         "text": {"body": body},
     }
+
+    app.logger.info(f"Sending WhatsApp text to {phone_e164}")
+    app.logger.debug(f"WhatsApp payload: {json.dumps(payload)[:1000]}")
+
     response = requests.post(url, headers=headers, json=payload, timeout=30)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.RequestException:
+        app.logger.exception("WhatsApp text send failed")
+        raise
+
+    app.logger.info(f"WhatsApp text sent successfully: {response.status_code}")
+    app.logger.debug(f"WhatsApp response: {response.text[:1000]}")
     return response.json()
 
 
@@ -488,11 +499,18 @@ def webhook() -> Any:
         raw_body = request.get_data()
         signature = request.headers.get("X-Hub-Signature-256")
 
+        app.logger.info(f"Webhook POST received: signature={signature}")
+        app.logger.debug(f"Webhook raw body: {raw_body.decode('utf-8', errors='replace')}")
+
         if not verify_meta_signature(raw_body, signature):
+            app.logger.warning("Webhook signature verification failed")
             return jsonify({"error": "invalid_signature"}), 403
 
         payload = request.get_json(silent=True) or {}
+        app.logger.info(f"Webhook payload parsed: {json.dumps(payload)[:1000]}")
         incoming = parse_incoming_message(payload)
+        app.logger.info(f"Parsed incoming message: {incoming}")
+
         if not incoming:
             return jsonify({"ok": True, "ignored": True})
 
