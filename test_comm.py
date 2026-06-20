@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 
 load_dotenv()
 app = Flask(__name__)
@@ -470,13 +470,14 @@ def health() -> Any:
 def webhook() -> Any:
     if request.method == "GET":
         # Webhook verification
-        mode = request.args.get("hub.mode")
-        challenge = request.args.get("hub.challenge")
-        verify_token = request.args.get("hub.verify_token")
+        mode = request.args.get("hub.mode") or request.args.get("hub_mode")
+        challenge = request.args.get("hub.challenge") or request.args.get("hub_challenge")
+        verify_token = request.args.get("hub.verify_token") or request.args.get("hub_verify_token")
 
-        if mode == "subscribe" and verify_token == VERIFY_TOKEN:
-            return challenge, 200
-        return jsonify({"error": "verification_failed"}), 403
+        expected_token = VERIFY_TOKEN
+        if mode == "subscribe" and verify_token == expected_token:
+            return Response(challenge or "", status=200, mimetype="text/plain")
+        return Response("Forbidden", status=403, mimetype="text/plain")
 
     elif request.method == "POST":
         # Webhook message handling
