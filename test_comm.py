@@ -15,7 +15,7 @@ app = Flask(__name__)
 # -----------------------------------------------------------------------------
 # Configuration
 # -----------------------------------------------------------------------------
-VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "change-me")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "change-me")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
 WHATSAPP_APP_SECRET = os.getenv("WHATSAPP_APP_SECRET", "")
